@@ -1,11 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"log"
-	"database/sql"
 	"net/http"
 
+	"github.com/ermapula/golang-project/pkg/model"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -15,6 +16,11 @@ type config struct {
 	db   struct {
 		dsn string
 	}
+}
+
+type application struct {
+	config config
+	models model.Models
 }
 
 func main() {
@@ -29,18 +35,12 @@ func main() {
 	}
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-		return
+	app := &application{
+		config: cfg,
+		models: model.NewModels(db),
 	}
-	log.Printf("Ping no error")
-	r := mux.NewRouter()
 
-	r.HandleFunc("/games", Games).Methods("GET")
-
-	log.Printf("Server on port :8080")
-	http.ListenAndServe(":8080", r)
+	app.run()
 }
 
 func openDB(cfg config) (*sql.DB, error) {
@@ -50,4 +50,15 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func (app *application) run() {
+	r := mux.NewRouter()
+
+	// r.HandleFunc("/games", Games).Methods("GET")
+
+	r.HandleFunc("/publishers/{id:[0-9]+}", app.getPublisher).Methods("GET")
+
+	log.Printf("Server on port :%s\n", app.config.port)
+	http.ListenAndServe(app.config.port, r)
 }
