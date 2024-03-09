@@ -117,7 +117,7 @@ func (m GameModel) Get(id int) (*Game, error) {
 	defer cancel()
 
 	row := m.DB.QueryRowContext(ctx, query, id)
-	err := row.Scan(&game.Id, &game.Title, &game.Genre, &game.ReleaseDate, &game.Price, &game.PublisherId)
+	err := row.Scan(&game.Id, &game.Title, &game.Genre, &game.Price, &game.ReleaseDate, &game.PublisherId)
 	if err != nil {
 		return nil, err
 	}
@@ -133,11 +133,38 @@ func (m GameModel) Post(game *Game) error {
 	args := []interface{}{game.Title, game.Genre, game.Price, game.ReleaseDate, game.PublisherId}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	
+
 	row := m.DB.QueryRowContext(ctx, query, args...)
 	if err := row.Scan(&game.Id); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (m GameModel) Delete(id int) error {
+	query := `
+		DELETE FROM games WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, id)
+
+	return err
+}
+
+func (m GameModel) Update(game *Game) error {
+	query := `
+		UPDATE games
+		SET title = $1, genre = $2, price = $3, release_date = $4, publisher_id = $5
+		WHERE id = $6
+	`
+
+	args := []interface{}{game.Title, game.Genre, game.Price, game.ReleaseDate, game.PublisherId, game.Id}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Id)
 }

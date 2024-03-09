@@ -60,8 +60,8 @@ func (app *application) run() {
 
 	r.HandleFunc("/games/{gameId:[0-9]+}", app.getGame).Methods("GET")
 	r.HandleFunc("/games", app.postGame).Methods("POST")
-	// r.HandleFunc("/games/{gameId:[0-9]+}", app.updateGame).Methods("PUT")
-	// r.HandleFunc("/games/{gameId:[0-9]+}", app.deleteGame).Methods("DELETE")
+	r.HandleFunc("/games/{gameId:[0-9]+}", app.updateGame).Methods("PUT")
+	r.HandleFunc("/games/{gameId:[0-9]+}", app.deleteGame).Methods("DELETE")
 
 	log.Printf("Server on port :%s\n", app.config.port)
 	http.ListenAndServe(app.config.port, r)
