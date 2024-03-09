@@ -3,16 +3,16 @@ A game store like project. It contains games and publishers. Later when users ar
 
 ## Game REST API
 
-`
+```
 GET /games/:id
 POST /games
 PUT /games/:id
 DELETE /games/:id
-`
+```
 
 ## DB Structure
 
-`
+```
 Table publishers {
   id integer [primary key]
   name text
@@ -30,7 +30,7 @@ Table games {
 }
 
 Ref: games.publisher_id > publishers.id
-`
+```
 
 ## Project Team
 Tolymbekov Ermek Beisenuly, 20B030635
