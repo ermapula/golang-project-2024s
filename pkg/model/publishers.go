@@ -1,7 +1,11 @@
 package model
 
 import (
+	"context"
+	"database/sql"
 	"errors"
+	"log"
+	"time"
 )
 
 type Publisher struct {
@@ -9,6 +13,12 @@ type Publisher struct {
 	Name         string `json:"name"`
 	Headquarters string `json:"headquarters"`
 	Website      string `json:"website"`
+}
+
+type PublisherModel struct {
+	DB *sql.DB
+	InfoLog *log.Logger
+	ErrorLog *log.Logger
 }
 
 var publishers = []Publisher{
@@ -44,15 +54,34 @@ var publishers = []Publisher{
 	},
 }
 
-func GetPublishers() []Publisher {
-	return publishers
-}
+// func GetPublishers() []Publisher {
+// 	return publishers
+// }
 
-func GetPublisher(id string) (*Publisher, error) {
-	for _, pub := range publishers {
-		if pub.Id == id {
-			return &pub, nil
-		}
+// func GetPublisher(id string) (*Publisher, error) {
+// 	for _, pub := range publishers {
+// 		if pub.Id == id {
+// 			return &pub, nil
+// 		}
+// 	}
+// 	return nil, errors.New("Publisher not found")
+// }
+
+func (m PublisherModel) Get(id int) (*Publisher, error) {
+	query := `
+		SELECT * 
+		FROM publishers
+		WHERE id = $1 
+	`
+	var pub Publisher
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+
+	row := m.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(&pub.Id, &pub.Name, &pub.Headquarters, &pub.Website)
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("Publisher not found")
+
+	return &pub, nil 
 }
