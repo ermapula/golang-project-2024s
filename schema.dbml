@@ -1,0 +1,17 @@
+Table publishers {
+  id integer [primary key]
+  name text
+  headquarters text
+  website text
+}
+
+Table games {
+  id integer [primary key]
+  title text
+  genre text
+  price double
+  release_date timestamp
+  publisher_id integer
+}
+
+Ref: games.publisher_id > publishers.id
