@@ -3,7 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
-	"errors"
+	// "errors"
 	"log"
 	"time"
 )
@@ -21,51 +21,6 @@ type PublisherModel struct {
 	ErrorLog *log.Logger
 }
 
-var publishers = []Publisher{
-	{
-		Id:           "1",
-		Name:         "Electronic Arts",
-		Headquarters: "Redwood City, California, USA",
-		Website:      "https://www.ea.com",
-	},
-	{
-		Id:           "2",
-		Name:         "Ubisoft",
-		Headquarters: "Montreuil, France",
-		Website:      "https://www.ubisoft.com",
-	},
-	{
-		Id:           "3",
-		Name:         "Nintendo",
-		Headquarters: "Kyoto, Japan",
-		Website:      "https://www.nintendo.com",
-	},
-	{
-		Id:           "4",
-		Name:         "Activision Blizzard",
-		Headquarters: "Santa Monica, California, USA",
-		Website:      "https://www.activisionblizzard.com",
-	},
-	{
-		Id:           "5",
-		Name:         "FromSoftware",
-		Headquarters: "Tokyo, Japan",
-		Website:      "https://www.fromsoftware.jp",
-	},
-}
-
-// func GetPublishers() []Publisher {
-// 	return publishers
-// }
-
-// func GetPublisher(id string) (*Publisher, error) {
-// 	for _, pub := range publishers {
-// 		if pub.Id == id {
-// 			return &pub, nil
-// 		}
-// 	}
-// 	return nil, errors.New("Publisher not found")
-// }
 
 func (m PublisherModel) Get(id int) (*Publisher, error) {
 	query := `
@@ -84,4 +39,33 @@ func (m PublisherModel) Get(id int) (*Publisher, error) {
 	}
 
 	return &pub, nil 
+}
+
+func (m PublisherModel) GetAll() ([]Publisher, error) {
+	query := `
+		SELECT * 
+		FROM publishers
+	`
+
+	rows, err := m.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var pubs []Publisher
+
+	for rows.Next() {
+		var pub Publisher
+		err := rows.Scan(&pub.Id, &pub.Name, &pub.Headquarters, &pub.Website)
+		if err != nil {
+			return pubs, err
+		}
+		pubs = append(pubs, pub)
+	}
+	if err := rows.Err(); err != nil {
+		return pubs, err
+	}
+	return pubs, nil
 }
