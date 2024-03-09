@@ -8,6 +8,7 @@ import (
 
 type Models struct {
 	Publishers PublisherModel
+	Games      GameModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -15,9 +16,14 @@ func NewModels(db *sql.DB) Models {
 	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime)
 	return Models{
 		Publishers: PublisherModel{
-			DB: db,
+			DB:       db,
 			ErrorLog: errorLog,
-			InfoLog: infoLog,
+			InfoLog:  infoLog,
+		},
+		Games: GameModel{
+			DB:       db,
+			ErrorLog: errorLog,
+			InfoLog:  infoLog,
 		},
 	}
 }
