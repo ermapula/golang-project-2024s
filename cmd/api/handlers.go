@@ -59,7 +59,7 @@ func (app *application) getPublisher(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) getGame(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	param := vars["id"]
+	param := vars["gameId"]
 
 	id, err := strconv.Atoi(param)
 	if err != nil || id < 1 {
