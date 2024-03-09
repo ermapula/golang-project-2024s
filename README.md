@@ -4,6 +4,9 @@ A game store like project. It contains games and publishers. Later when users ar
 ## Game REST API
 
 ```
+GET /publishers
+GET /publishers/:id
+
 GET /games/:id
 POST /games
 PUT /games/:id
