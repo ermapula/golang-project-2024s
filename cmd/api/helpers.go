@@ -40,3 +40,15 @@ func (app *application) readIDParam(r *http.Request) (int, error) {
 
 	return id, nil
 }
+
+func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dest interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	err := decoder.Decode(dest)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -9,7 +9,10 @@ import (
 func (app *application) routes() http.Handler {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
+	r.NotFoundHandler = http.HandlerFunc(app.notFoundResponse)
+	r.MethodNotAllowedHandler = http.HandlerFunc(app.methodNotAllowedResponse)
+
+	r.HandleFunc("/v1/healthcheck", app.healthcheckHandler).Methods("GET")
 	
 	r.HandleFunc("/publishers", app.getPublishers).Methods("GET")
 	r.HandleFunc("/publishers/{id:[0-9]+}", app.getPublisher).Methods("GET")
