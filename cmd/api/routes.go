@@ -23,5 +23,5 @@ func (app *application) routes() http.Handler {
 	r.HandleFunc("/games/{id:[0-9]+}", app.updateGame).Methods("PATCH")
 	r.HandleFunc("/games/{id:[0-9]+}", app.deleteGame).Methods("DELETE")
 
-	return r
+	return app.recoverPanic(r)
 }
