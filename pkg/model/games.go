@@ -2,10 +2,11 @@ package model
 
 import (
 	"database/sql"
-	// "errors"
 	"context"
 	"log"
 	"time"
+
+	"github.com/ermapula/golang-project/pkg/validator"
 )
 
 type Game struct {
@@ -167,4 +168,9 @@ func (m GameModel) Update(game *Game) error {
 	defer cancel()
 
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Id)
+}
+
+func ValidateGame(v *validator.Validator, game *Game) {
+	v.Check(game.Title != "", "title", "must be provided")
+	v.Check(len(game.Title) <= 500, "title", "must not be more than 500 bytes long")
 }

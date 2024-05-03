@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ermapula/golang-project/pkg/model"
+	"github.com/ermapula/golang-project/pkg/validator"
 )
 
 func (app *application) getGame(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +45,12 @@ func (app *application) postGame(w http.ResponseWriter, r *http.Request) {
 		Price:       input.Price,
 		ReleaseDate: input.ReleaseDate,
 		PublisherId: input.PublisherId,
+	}
+
+	v := validator.New()
+
+	if model.ValidateGame(v, game); !v.Valid() {
+		app.failedValidatorResponse(w, r, v.Errors)
 	}
 
 	err = app.models.Games.Post(game)
