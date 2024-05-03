@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"time"
+	"fmt"
 
 	"github.com/ermapula/golang-project/pkg/validator"
 	"github.com/lib/pq"
@@ -28,88 +29,56 @@ type GameModel struct {
 	ErrorLog *log.Logger
 }
 
-// var games = []Game{
-// 	{
-// 		Id:          "1",
-// 		Title:       "Battlefield V",
-// 		Genre:       "First Person Shooter",
-// 		ReleaseDate: "2018-11-20",
-// 		Price:       "$59.99",
-// 		PublisherId: "1",
-// 	},
-// 	{
-// 		Id:          "2",
-// 		Title:       "Assassin's Creed Unity",
-// 		Genre:       "Action-Adventure",
-// 		ReleaseDate: "2014-11-11",
-// 		Price:       "$39.99",
-// 		PublisherId: "2",
-// 	},
-// 	{
-// 		Id:          "3",
-// 		Title:       "The Legend of Zelda: Breath of the Wild",
-// 		Genre:       "Action-Adventure",
-// 		ReleaseDate: "2017-03-03",
-// 		Price:       "$59.99",
-// 		PublisherId: "3",
-// 	},
-// 	{
-// 		Id:          "4",
-// 		Title:       "Call of Duty: Warzone",
-// 		Genre:       "Battle Royale",
-// 		ReleaseDate: "2020-03-10",
-// 		Price:       "0",
-// 		PublisherId: "4",
-// 	},
-// 	{
-// 		Id:          "5",
-// 		Title:       "Elden Ring",
-// 		Genre:       "Action RPG",
-// 		ReleaseDate: "2022-02-25",
-// 		Price:       "$59.99",
-// 		PublisherId: "5",
-// 	},
-// 	{
-// 		Id:          "6",
-// 		Title:       "Apex Legends",
-// 		Genre:       "Battle Royale",
-// 		ReleaseDate: "2019-02-04",
-// 		Price:       "0",
-// 		PublisherId: "1",
-// 	},
-// 	{
-// 		Id:          "7",
-// 		Title:       "Far Cry 6",
-// 		Genre:       "First Person Shooter",
-// 		ReleaseDate: "2021-10-07",
-// 		Price:       "$59.99",
-// 		PublisherId: "2",
-// 	},
-// 	{
-// 		Id:          "8",
-// 		Title:       "Super Mario Odyssey",
-// 		Genre:       "Platformer",
-// 		ReleaseDate: "2017-10-27",
-// 		Price:       "$49.99",
-// 		PublisherId: "3",
-// 	},
-// 	{
-// 		Id:          "9",
-// 		Title:       "Call of Duty: Ghosts",
-// 		Genre:       "First Person Shooter",
-// 		ReleaseDate: "2014-03-25",
-// 		Price:       "$59.99",
-// 		PublisherId: "4",
-// 	},
-// 	{
-// 		Id:          "10",
-// 		Title:       "Dark Souls III",
-// 		Genre:       "Action RPG",
-// 		ReleaseDate: "2019-03-22",
-// 		Price:       "$59.99",
-// 		PublisherId: "5",
-// 	},
-// }
+func (m GameModel) GetAll(title string, genres []string, filters Filters) ([]*Game, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, created_at, title, genres, price, release_date, publisher_id, version
+		FROM games
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		AND (genres @> $2 OR $2 = '{}')
+		ORDER BY %s %s, id ASC
+		LIMIT $3 OFFSET $4
+	`, filters.sortColumn(), filters.sortDirection())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	
+	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+
+	totalRecords := 0
+	var games []*Game
+
+	for rows.Next() {
+		var game Game
+		err := rows.Scan(
+			&totalRecords,
+			&game.Id, 
+			&game.CreatedAt,
+			&game.Title, 
+			pq.Array(&game.Genres), 
+			&game.Price, 
+			&game.ReleaseDate, 
+			&game.PublisherId,
+			&game.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		games = append(games, &game)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return games, metadata, nil
+}
 
 func (m GameModel) Get(id int) (*Game, error) {
 	query := `
