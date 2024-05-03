@@ -3,12 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
-	// "github.com/ermapula/golang-project/pkg/model"
 	"github.com/ermapula/golang-project/pkg/model"
-	"github.com/gorilla/mux"
 )
 
 func (app *application) respondWithError(w http.ResponseWriter, code int, message string) {
@@ -39,11 +36,9 @@ func (app *application) getPublishers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) getPublisher(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	param := vars["id"]
+	id, err := app.readIDParam(r)
 
-	id, err := strconv.Atoi(param)
-	if err != nil || id < 1 {
+	if err != nil {
 		app.respondWithError(w, http.StatusBadRequest, "Invalid publisher ID")
 		return
 	}
@@ -58,11 +53,9 @@ func (app *application) getPublisher(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) getGame(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	param := vars["gameId"]
+	id, err := app.readIDParam(r)
 
-	id, err := strconv.Atoi(param)
-	if err != nil || id < 1 {
+	if err != nil {
 		app.respondWithError(w, http.StatusBadRequest, "Invalid game ID")
 		return
 	}
@@ -108,10 +101,8 @@ func (app *application) postGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) deleteGame(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	param := vars["gameId"]
+	id, err := app.readIDParam(r)
 
-	id, err := strconv.Atoi(param)
 	if err != nil || id < 1 {
 		app.respondWithError(w, http.StatusBadRequest, "Invalid game ID")
 		return
@@ -126,10 +117,8 @@ func (app *application) deleteGame(w http.ResponseWriter, r *http.Request) {
 	app.respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }
 func (app *application) updateGame(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	param := vars["gameId"]
-
-	id, err := strconv.Atoi(param)
+	id, err := app.readIDParam(r)
+	
 	if err != nil || id < 1 {
 		app.respondWithError(w, http.StatusBadRequest, "Invalid game id")
 		return
