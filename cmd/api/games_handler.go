@@ -152,7 +152,12 @@ func (app *application) updateGame(w http.ResponseWriter, r *http.Request) {
 
 	err = app.models.Games.Update(game)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, model.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

@@ -154,11 +154,41 @@ func (m GameModel) Post(game *Game) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	row := m.DB.QueryRowContext(ctx, query, args...)
-	if err := row.Scan(&game.Id, &game.CreatedAt, &game.Version); err != nil {
-		return err
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Id, &game.CreatedAt, &game.Version)
+}
+
+
+func (m GameModel) Update(game *Game) error {
+	query := `
+		UPDATE games
+		SET title = $1, genres = $2, price = $3, release_date = $4, publisher_id = $5, version = version + 1
+		WHERE id = $6 AND version = $7
+		RETURNING version
+	`
+
+	args := []interface{}{
+		game.Title, 
+		pq.Array(game.Genres), 
+		game.Price,
+		game.ReleaseDate, 
+		game.PublisherId, 
+		game.Id,
+		game.Version,
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+	
 	return nil
 }
 
@@ -177,28 +207,6 @@ func (m GameModel) Delete(id int) error {
 	_, err := m.DB.ExecContext(ctx, query, id)
 
 	return err
-}
-
-func (m GameModel) Update(game *Game) error {
-	query := `
-		UPDATE games
-		SET title = $1, genres = $2, price = $3, release_date = $4, publisher_id = $5, version = version + 1
-		WHERE id = $6
-		RETURNING version
-	`
-
-	args := []interface{}{
-		game.Title, 
-		pq.Array(game.Genres), 
-		game.Price,
-		game.ReleaseDate, 
-		game.PublisherId, 
-		game.Id,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Version)
 }
 
 func ValidateGame(v *validator.Validator, game *Game) {
