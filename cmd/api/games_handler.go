@@ -75,7 +75,6 @@ func (app *application) postGame(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) deleteGame(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
-
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -83,11 +82,16 @@ func (app *application) deleteGame(w http.ResponseWriter, r *http.Request) {
 
 	err = app.models.Games.Delete(id)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, model.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"result": "success"}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "success"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

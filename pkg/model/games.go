@@ -163,6 +163,10 @@ func (m GameModel) Post(game *Game) error {
 }
 
 func (m GameModel) Delete(id int) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
 	query := `
 		DELETE FROM games WHERE id = $1
 	`
