@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/ermapula/golang-project/pkg/jsonlog"
 	"github.com/ermapula/golang-project/pkg/model"
 	_ "github.com/lib/pq"
 )
@@ -27,7 +27,7 @@ type config struct {
 type application struct {
 	config config
 	models model.Models
-	logger *log.Logger
+	logger *jsonlog.Logger
 }
 
 func main() {
@@ -37,13 +37,14 @@ func main() {
 	flag.StringVar(&cfg.db.dsn, "DB-DSN", "postgres://ermek:adminpass@localhost/golang-project?sslmode=disable", "Postgres DSN")
 	flag.Parse()
 
-	logger := log.New(os.Stdout, "", log.Ldate | log.Ltime)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	db, err := openDB(cfg)
 	if err != nil {
-		log.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 	defer db.Close()
+	logger.PrintInfo("database connection pool established", nil)
 
 	app := &application{
 		config: cfg,
@@ -59,13 +60,16 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("Serving %s on port %s\n", cfg.env, srv.Addr)
+	logger.PrintInfo("Serving %s on port %s\n", map[string]string{
+		"addr": srv.Addr,
+		"env": cfg.env,
+	})
+
 	err = srv.ListenAndServe()
-	logger.Fatal(err)
+	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
-	log.Printf("Opening server...")
 	db, err := sql.Open("postgres", cfg.db.dsn)
 	if err != nil {
 		return nil, err
