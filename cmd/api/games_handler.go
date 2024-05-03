@@ -115,23 +115,34 @@ func (app *application) updateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input struct {
-		Title       string    `json:"title"`
+		Title       *string    `json:"title"`
 		Genres      []string  `json:"genres"`
-		ReleaseDate time.Time `json:"releaseDate"`
-		Price       float64   `json:"price"`
-		PublisherId int       `json:"publisherId"`
+		ReleaseDate *time.Time `json:"releaseDate"`
+		Price       *float64   `json:"price"`
+		PublisherId *int       `json:"publisherId"`
 	}
 	err = app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+
+	if input.Title != nil {
+		game.Title = *input.Title
+	}
+	if input.Genres != nil {
+		game.Genres = input.Genres
+	}
+	if input.Price != nil {
+		game.Price = *input.Price
+	}
+	if input.ReleaseDate != nil {
+		game.ReleaseDate = *input.ReleaseDate
+	}
+	if input.PublisherId != nil {
+		game.PublisherId = *input.PublisherId
+	}
 	
-	game.Title = input.Title
-	game.Genres = input.Genres
-	game.Price = input.Price
-	game.ReleaseDate = input.ReleaseDate
-	game.PublisherId = input.PublisherId
 
 	v := validator.New()
 	if model.ValidateGame(v, game); !v.Valid() {
