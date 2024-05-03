@@ -1,21 +1,25 @@
 package model
 
 import (
-	"database/sql"
 	"context"
+	"database/sql"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/ermapula/golang-project/pkg/validator"
+	"github.com/lib/pq"
 )
 
 type Game struct {
 	Id          string    `json:"id"`
 	Title       string    `json:"title"`
-	Genre       string    `json:"genre"`
+	CreatedAt   time.Time `json:"-"`
+	Genres      []string  `json:"genres"`
 	ReleaseDate time.Time `json:"releaseDate"`
 	Price       float64   `json:"price"`
 	PublisherId int       `json:"publisherId"`
+	Version     int32     `json:"version"`
 }
 
 type GameModel struct {
@@ -109,7 +113,7 @@ type GameModel struct {
 
 func (m GameModel) Get(id int) (*Game, error) {
 	query := `
-		SELECT * 
+		SELECT id, created_at, title, genres, price, release_date, publisher_id, version
 		FROM games
 		WHERE id = $1 
 	`
@@ -118,9 +122,23 @@ func (m GameModel) Get(id int) (*Game, error) {
 	defer cancel()
 
 	row := m.DB.QueryRowContext(ctx, query, id)
-	err := row.Scan(&game.Id, &game.Title, &game.Genre, &game.Price, &game.ReleaseDate, &game.PublisherId)
+	err := row.Scan(
+		&game.Id, 
+		&game.CreatedAt,
+		&game.Title, 
+		pq.Array(&game.Genres), 
+		&game.Price, 
+		&game.ReleaseDate, 
+		&game.PublisherId,
+		&game.Version,
+	)
 	if err != nil {
-		return nil, err
+		switch{
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
 	}
 
 	return &game, nil
@@ -128,15 +146,16 @@ func (m GameModel) Get(id int) (*Game, error) {
 
 func (m GameModel) Post(game *Game) error {
 	query := `
-		INSERT INTO games (title, genre, price, release_date, publisher_id)
+		INSERT INTO games (title, genres, price, release_date, publisher_id)
 		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at, version
 	`
-	args := []interface{}{game.Title, game.Genre, game.Price, game.ReleaseDate, game.PublisherId}
+	args := []interface{}{game.Title, pq.Array(game.Genres), game.Price, game.ReleaseDate, game.PublisherId}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	row := m.DB.QueryRowContext(ctx, query, args...)
-	if err := row.Scan(&game.Id); err != nil {
+	if err := row.Scan(&game.Id, &game.CreatedAt, &game.Version); err != nil {
 		return err
 	}
 
@@ -159,15 +178,23 @@ func (m GameModel) Delete(id int) error {
 func (m GameModel) Update(game *Game) error {
 	query := `
 		UPDATE games
-		SET title = $1, genre = $2, price = $3, release_date = $4, publisher_id = $5
+		SET title = $1, genres = $2, price = $3, release_date = $4, publisher_id = $5, version = version + 1
 		WHERE id = $6
+		RETURNING version
 	`
 
-	args := []interface{}{game.Title, game.Genre, game.Price, game.ReleaseDate, game.PublisherId, game.Id}
+	args := []interface{}{
+		game.Title, 
+		pq.Array(game.Genres), 
+		game.Price,
+		game.ReleaseDate, 
+		game.PublisherId, 
+		game.Id,
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Id)
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&game.Version)
 }
 
 func ValidateGame(v *validator.Validator, game *Game) {
