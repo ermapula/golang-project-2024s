@@ -3,16 +3,21 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/ermapula/golang-project/pkg/model"
-	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
+const version = "1.0.0"
+
 type config struct {
-	port string
+	port int
+	env string
 	db   struct {
 		dsn string
 	}
@@ -21,13 +26,18 @@ type config struct {
 type application struct {
 	config config
 	models model.Models
+	logger *log.Logger
 }
 
 func main() {
 	var cfg config
-	flag.StringVar(&cfg.port, "port", ":8080", "Server port")
+	flag.IntVar(&cfg.port, "port", 8080, "Server port")
+	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "DB-DSN", "postgres://ermek:adminpass@localhost/golang-project?sslmode=disable", "Postgres DSN")
 	flag.Parse()
+
+	logger := log.New(os.Stdout, "", log.Ldate | log.Ltime)
+
 	db, err := openDB(cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -38,9 +48,20 @@ func main() {
 	app := &application{
 		config: cfg,
 		models: model.NewModels(db),
+		logger: logger,
 	}
 
-	app.run()
+	srv := &http.Server {
+		Addr: fmt.Sprintf(":%d", cfg.port),
+		Handler: app.routes(),
+		IdleTimeout: time.Minute,
+		ReadTimeout: 10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
+	logger.Printf("Serving %s on port %s\n", cfg.env, srv.Addr)
+	err = srv.ListenAndServe()
+	logger.Fatal(err)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
@@ -50,19 +71,4 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
-}
-
-func (app *application) run() {
-	r := mux.NewRouter()
-
-	r.HandleFunc("/publishers", app.getPublishers).Methods("GET")
-	r.HandleFunc("/publishers/{id:[0-9]+}", app.getPublisher).Methods("GET")
-
-	r.HandleFunc("/games/{gameId:[0-9]+}", app.getGame).Methods("GET")
-	r.HandleFunc("/games", app.postGame).Methods("POST")
-	r.HandleFunc("/games/{gameId:[0-9]+}", app.updateGame).Methods("PUT")
-	r.HandleFunc("/games/{gameId:[0-9]+}", app.deleteGame).Methods("DELETE")
-
-	log.Printf("Server on port %s\n", app.config.port)
-	http.ListenAndServe(app.config.port, r)
 }
