@@ -53,13 +53,27 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	err = app.models.Permissions.AddForUser(user.Id, "games:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	token, err := app.models.Tokens.New(user.Id, 3*24*time.Hour, model.ScopeActivation)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return 
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user, "activation_token": token.Plaintext}, nil)
+	data := struct{
+		Token *string `json:"token"`
+		User *model.User `json:"user"`
+	}{
+		Token: &token.Plaintext,
+		User: user,
+	}
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"user": data}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

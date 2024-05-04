@@ -14,6 +14,7 @@ var (
 
 type Models struct {
 	Publishers PublisherModel
+	Permissions PermissionModel
 	Games      GameModel
 	Users      UserModel
 	Tokens     TokenModel
@@ -39,5 +40,6 @@ func NewModels(db *sql.DB) Models {
 		Tokens: TokenModel{
 			DB: db,
 		},
+		Permissions: PermissionModel{DB: db},
 	}
 }
