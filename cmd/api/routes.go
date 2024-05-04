@@ -26,5 +26,7 @@ func (app *application) routes() http.Handler {
 	r.HandleFunc("/users", app.registerUserHandler).Methods("POST")
 	r.HandleFunc("/users/activated", app.activateUserHandler).Methods("PUT")
 
-	return app.recoverPanic(r)
+	r.HandleFunc("/tokens/authentication", app.createAuthenticationTokenHandler).Methods("POST")
+
+	return app.recoverPanic(app.authenticate(r))
 }
