@@ -19,9 +19,9 @@ func (app *application) routes() http.Handler {
 
 	r.HandleFunc("/games", app.getGames).Methods("GET")
 	r.HandleFunc("/games/{id:[0-9]+}", app.getGame).Methods("GET")
-	r.HandleFunc("/games", app.postGame).Methods("POST")
-	r.HandleFunc("/games/{id:[0-9]+}", app.updateGame).Methods("PATCH")
-	r.HandleFunc("/games/{id:[0-9]+}", app.deleteGame).Methods("DELETE")
+	r.HandleFunc("/games", app.requireActivatedUser(app.postGame)).Methods("POST")
+	r.HandleFunc("/games/{id:[0-9]+}", app.requireActivatedUser(app.updateGame)).Methods("PATCH")
+	r.HandleFunc("/games/{id:[0-9]+}", app.requireActivatedUser(app.deleteGame)).Methods("DELETE")
 
 	r.HandleFunc("/users", app.registerUserHandler).Methods("POST")
 	r.HandleFunc("/users/activated", app.activateUserHandler).Methods("PUT")
