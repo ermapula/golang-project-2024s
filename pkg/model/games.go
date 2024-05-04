@@ -181,4 +181,8 @@ func (m GameModel) Delete(id int) error {
 func ValidateGame(v *validator.Validator, game *Game) {
 	v.Check(game.Title != "", "title", "must be provided")
 	v.Check(len(game.Title) <= 500, "title", "must not be more than 500 bytes long")
+	v.Check(game.ReleaseDate.Before(time.Now()), "releaseDate", "must be a date before today")
+	v.Check(game.Price >= 0, "price", "must be at least zero")
+	v.Check(game.PublisherId > 0, "publisherId", "must be a positive integer")
+	v.Check(len(game.Genres) > 0, "genres", "must contain at least one genre")
 }
