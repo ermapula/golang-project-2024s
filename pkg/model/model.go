@@ -16,6 +16,7 @@ type Models struct {
 	Publishers PublisherModel
 	Games      GameModel
 	Users      UserModel
+	Tokens     TokenModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -33,6 +34,9 @@ func NewModels(db *sql.DB) Models {
 			InfoLog:  infoLog,
 		},
 		Users: UserModel{
+			DB: db,
+		},
+		Tokens: TokenModel{
 			DB: db,
 		},
 	}

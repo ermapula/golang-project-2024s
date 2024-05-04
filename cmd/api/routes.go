@@ -24,6 +24,7 @@ func (app *application) routes() http.Handler {
 	r.HandleFunc("/games/{id:[0-9]+}", app.deleteGame).Methods("DELETE")
 
 	r.HandleFunc("/users", app.registerUserHandler).Methods("POST")
+	r.HandleFunc("/users/activated", app.activateUserHandler).Methods("PUT")
 
 	return app.recoverPanic(r)
 }
