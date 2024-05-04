@@ -9,12 +9,13 @@ import (
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict = errors.New("edit conflict")
+	ErrEditConflict   = errors.New("edit conflict")
 )
 
 type Models struct {
 	Publishers PublisherModel
 	Games      GameModel
+	Users      UserModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -30,6 +31,9 @@ func NewModels(db *sql.DB) Models {
 			DB:       db,
 			ErrorLog: errorLog,
 			InfoLog:  infoLog,
+		},
+		Users: UserModel{
+			DB: db,
 		},
 	}
 }
