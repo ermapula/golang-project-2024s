@@ -36,10 +36,10 @@ type application struct {
 func main() {
 	var cfg config
 
-	flag.StringVar(&cfg.migrations, "migrations", "", "Path to migration files folder. If not provided, migrations do not applied")
+	flag.StringVar(&cfg.migrations, "migrations", os.Getenv("MIGRATIONS"), "Path to migration files folder. If not provided, migrations do not applied")
 	flag.IntVar(&cfg.port, "port", 8080, "Server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dsn, "DB-DSN", "postgres://ermek:adminpass@localhost/golang-project?sslmode=disable", "Postgres DSN")
+	flag.StringVar(&cfg.db.dsn, "DB-DSN", os.Getenv("DSN"), "Postgres DSN")
 	flag.Parse()
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
@@ -78,7 +78,7 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
 
 	err = db.PingContext(ctx)
