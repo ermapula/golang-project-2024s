@@ -13,7 +13,7 @@ import (
 )
 
 type Game struct {
-	Id          string    `json:"id"`
+	Id          int64    `json:"id"`
 	Title       string    `json:"title"`
 	CreatedAt   time.Time `json:"-"`
 	Genres      []string  `json:"genres"`
@@ -185,4 +185,94 @@ func ValidateGame(v *validator.Validator, game *Game) {
 	v.Check(game.Price >= 0, "price", "must be at least zero")
 	v.Check(game.PublisherId > 0, "publisherId", "must be a positive integer")
 	v.Check(len(game.Genres) > 0, "genres", "must contain at least one genre")
+}
+
+func (m GameModel) GetAllOfUser(userId int64) ([]*Game, error) {
+	query := `
+		SELECT g.id, g.title, g.created_at, g.genres, g.price, g.release_date, g.publisher_id, g.version
+		FROM games g
+		JOIN library l ON g.id = l.game_id
+		WHERE l.user_id = $1
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var games []*Game
+	for rows.Next() {
+		var game Game
+		err := rows.Scan(
+			&game.Id, 
+			&game.Title, 
+			&game.CreatedAt, 
+			pq.Array(&game.Genres), 
+			&game.Price, 
+			&game.ReleaseDate, 
+			&game.PublisherId,
+			&game.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, &game)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return games, nil
+}
+
+func (m GameModel) AddToLibrary(userId int64, gameId int) error {
+	query := `
+		SELECT id
+		FROM library
+		WHERE user_id = $1 AND game_id = $2
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var id int 
+	row := m.DB.QueryRowContext(ctx, query, userId, gameId)
+	err := row.Scan(&id)
+	if err == nil {
+		return errors.New("game already in library")
+	}
+	if err != sql.ErrNoRows {
+		return err
+	}
+
+
+	query = `
+		INSERT INTO library (user_id, game_id)
+		VALUES ($1, $2)
+	`
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = m.DB.ExecContext(ctx, query, userId, gameId)
+	
+	return err
+}
+
+func (m GameModel) DeleteFromLibrary(userId int64, gameId int) error {
+	if userId < 1 || gameId < 1 {
+		return ErrRecordNotFound
+	}
+
+	query := `
+		DELETE FROM library WHERE user_id = $1 AND game_id = $2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, userId, gameId)
+
+	return err
 }

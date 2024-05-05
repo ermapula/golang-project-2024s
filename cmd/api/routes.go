@@ -23,6 +23,14 @@ func (app *application) routes() http.Handler {
 	r.HandleFunc("/games/{id:[0-9]+}", app.requirePermission("games:write", app.requireActivatedUser(app.updateGame))).Methods("PATCH")
 	r.HandleFunc("/games/{id:[0-9]+}", app.requirePermission("games:write", app.requireActivatedUser(app.deleteGame))).Methods("DELETE")
 
+	r.HandleFunc("/permissions", app.addPermission).Methods("POST")
+
+	r.HandleFunc("/wallet", app.requireAuthenticatedUser(app.getWalletHandler)).Methods("GET")
+	r.HandleFunc("/wallet", app.requireAuthenticatedUser(app.updateWalletHandler)).Methods("PATCH")
+	r.HandleFunc("/library", app.requireAuthenticatedUser(app.showLibraryHandler)).Methods("GET")
+	r.HandleFunc("/library/{id:[0-9]+}", app.requireAuthenticatedUser(app.addLibraryHandler)).Methods("POST")
+	r.HandleFunc("/library/{id:[0-9]+}", app.requireAuthenticatedUser(app.removeLibraryHandler)).Methods("DELETE")
+
 	r.HandleFunc("/users", app.registerUserHandler).Methods("POST")
 	r.HandleFunc("/users/activated", app.activateUserHandler).Methods("PUT")
 

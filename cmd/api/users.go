@@ -132,3 +132,34 @@ func(app *application) activateUserHandler(w http.ResponseWriter,  r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) addPermission(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		UserID int64 `json:"user_id"`
+		Permission string `json:"permission"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if model.ValidatePermission(v, input.Permission); !v.Valid() {
+		app.failedValidatorResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Permissions.AddForUser(input.UserID, input.Permission)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"permission": input.Permission}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

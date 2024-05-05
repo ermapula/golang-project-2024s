@@ -51,7 +51,7 @@ INSERT INTO games (title, genres, release_date, price, publisher_id)
 		('The Legend of Zelda: Link''s Awakening', '{"action-adventure", "open world", "puzzle"}', '1993-06-06', 19.99, 3),
 		('Call of Duty: Black Ops Cold War', '{"fps"}', '2020-11-13', 59.99, 4),
 		('Sekiro: Shadows Die Twice', '{"action-adventure", "souls-like"}', '2019-03-22', 59.99, 5),
-		('Super Mario Bros.', '{"platform", "action-adventure"}', '1985-09-13', 9.99,),
+		('Super Mario Bros.', '{"platform", "action-adventure"}', '1985-09-13', 9.99, 3),
 		('Far Cry 2', '{"action-adventure", "fps", "open world"}', '2008-10-21', 19.99, 2),
 		('The Legend of Zelda: Majora''s Mask', '{"action-adventure", "open world", "puzzle"}', '2000-04-27', 39.99, 3),
 		('Call of Duty: Infinite Warfare', '{"fps"}', '2016-11-04', 59.99, 4),

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/ermapula/golang-project/pkg/validator"
@@ -66,6 +67,12 @@ func ValidateEmail(v *validator.Validator, email string) {
 	v.Check(validator.Matches(email, validator.EmailRX), "email", "must be a valid email address")
 }
 
+func ValidatePermission(v *validator.Validator, permission string) {
+	v.Check(permission != "", "permission", "must be provided")
+	v.Check(len(permission) <= 100, "permission", "must not be more than 100 bytes long")
+	v.Check(len(strings.Split(permission, ":")) == 2, "permission", "must be in the format 'domain:action'")
+}
+
 func ValidatePasswordPlaintext(v *validator.Validator, password string) {
 	v.Check(password != "", "password", "must be provided")
 	v.Check(len(password) >= 8, "password", "must be at least 8 bytes long")
@@ -112,7 +119,17 @@ func (m UserModel) Insert(user *User) error {
 			return err
 		}
 	}
-	return nil
+
+	query = `
+		INSERT INTO wallet (user_id, balance)
+		VALUES ($1, 0)
+	`
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = m.DB.ExecContext(ctx, query, user.Id)
+
+	return err
 }
 
 func (m UserModel) GetByEmail(email string) (*User, error) {
@@ -221,4 +238,58 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 	}
 
 	return &user, nil
+}
+
+type Wallet struct {
+	Id int64 `json:"id"`
+	Balance float64 `json:"balance"`
+}
+
+func (m UserModel) GetWallet(userId int64) (*Wallet, error) {
+	query := `
+		SELECT id, balance
+		FROM wallet
+		WHERE id = $1
+	`
+
+	var wallet Wallet
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, userId).Scan(&wallet.Id, &wallet.Balance)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &wallet, nil
+}
+
+func (m UserModel) UpdateWallet(userId int64, amount float64) (*Wallet, error) {
+	query := `
+		UPDATE wallet
+		SET balance = balance + $1
+		WHERE id = $2
+		RETURNING balance
+	`
+
+	var wallet Wallet
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, amount, userId).Scan(&wallet.Balance)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &wallet, nil
 }
