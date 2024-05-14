@@ -15,7 +15,5 @@ databases:
   - name: db
     postgresMajorVersion: "16"
     plan: free
-    databaseName: golang-project
-    user: postgres
 
 
