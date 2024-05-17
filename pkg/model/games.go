@@ -29,19 +29,20 @@ type GameModel struct {
 	ErrorLog *log.Logger
 }
 
-func (m GameModel) GetAll(title string, genres []string, filters Filters) ([]*Game, Metadata, error) {
+func (m GameModel) GetAll(title string, genres []string, publisher_id int, filters Filters) ([]*Game, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, created_at, title, genres, price, release_date, publisher_id, version
 		FROM games
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
+		AND (publisher_id = $3 OR $3 = -1)
 		ORDER BY %s %s, id ASC
-		LIMIT $3 OFFSET $4
+		LIMIT $4 OFFSET $5
 	`, filters.sortColumn(), filters.sortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	
-	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
+	args := []interface{}{title, pq.Array(genres), publisher_id, filters.limit(), filters.offset()}
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {

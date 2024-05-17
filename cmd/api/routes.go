@@ -16,6 +16,7 @@ func (app *application) routes() http.Handler {
 	
 	r.HandleFunc("/publishers", app.getPublishers).Methods("GET")
 	r.HandleFunc("/publishers/{id:[0-9]+}", app.getPublisher).Methods("GET")
+	r.HandleFunc("/publishers/{id:[0-9]+}/games", app.getPublisherGames).Methods("GET")
 
 	r.HandleFunc("/games", app.requirePermission("games:read", app.getGames)).Methods("GET")
 	r.HandleFunc("/games/{id:[0-9]+}", app.requirePermission("games:read", app.getGame)).Methods("GET")

@@ -37,6 +37,7 @@ func (app *application) getGames(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Title       string
 		Genres      []string
+		PublisherId int
 		model.Filters
 	}
 
@@ -44,6 +45,7 @@ func (app *application) getGames(w http.ResponseWriter, r *http.Request) {
 
 	qs := r.URL.Query()
 
+	input.PublisherId = app.readInt(qs, "publisher_id", -1, v)
 	input.Title = app.readString(qs, "title", "")
 	input.Genres = app.readCSV(qs, "genres", []string{})
 	
@@ -58,7 +60,51 @@ func (app *application) getGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games, metadata, err := app.models.Games.GetAll(input.Title, input.Genres, input.Filters)
+	games, metadata, err := app.models.Games.GetAll(input.Title, input.Genres, input.PublisherId, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"games": games, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) getPublisherGames(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	var input struct {
+		Title       string
+		Genres      []string
+		PublisherId int
+		model.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+	input.PublisherId = id
+	input.Title = app.readString(qs, "title", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+	
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "title", "price", "release_date", "-id", "-title", "-price", "-release_date"}
+
+	if model.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidatorResponse(w, r, v.Errors)
+		return
+	}
+
+	games, metadata, err := app.models.Games.GetAll(input.Title, input.Genres, input.PublisherId, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
